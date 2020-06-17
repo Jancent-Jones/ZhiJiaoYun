@@ -412,3 +412,56 @@ class ZhiJiao:
         ret = json.loads(r.text)
 
         return ret['code'] == 1
+
+    def updatePdf(self, courseOpenId, openClassId, moduleId, cellId, picNum, studyNewlyPicNum, token):
+
+        url = "https://zjy2.icve.com.cn/api/common/Directory/stuProcessCellLog"
+
+        headers = {'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
+            'Accept-Encoding': "gzip, deflate, br",
+            'Origin': "https://zjy2.icve.com.cn",
+            'X-Requested-With': "XMLHttpRequest",
+            'Referer': "https://zjy2.icve.com.cn/common/directory/directory.html?courseOpenId=%s&openClassId=%s&cellId=%s&flag=s&moduleId=%s" % (courseOpenId, openClassId, cellId, moduleId)
+        }
+
+        data = obj2str({
+            'courseOpenId': courseOpenId,
+            'openClassId': openClassId,
+            'cellId': cellId,
+            'picNum': picNum,
+            'studynewlyTime': 0,
+            'studyNewlyPicNum': studyNewlyPicNum,
+            'token': token,
+        }).encode(encoding="utf-8")
+
+        r = self.s.post(url, headers=headers, data=data)
+
+        ret = json.loads(r.text)
+
+        return ret
+
+    def updatePic(self, courseOpenId, openClassId, moduleId, cellId, picNum, studyNewlyPicNum, token):
+        url = "https://zjy2.icve.com.cn/api/common/Directory/stuProcessCellLog"
+        headers = {'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
+                   'Accept-Encoding': "gzip, deflate, br",
+                   'Origin': "https://zjy2.icve.com.cn",
+                   'X-Requested-With': "XMLHttpRequest",
+                   'Referer': "https://zjy2.icve.com.cn/common/directory/directory.html?courseOpenId=%s&openClassId=%s&cellId=%s&flag=s&moduleId=%s" % (
+                   courseOpenId, openClassId, cellId, moduleId)
+                   }
+
+        data = obj2str({
+            'courseOpenId': courseOpenId,
+            'openClassId': openClassId,
+            'cellId': cellId,
+            'picNum': picNum,
+            'studynewlyTime': 0,
+            'studyNewlyPicNum': studyNewlyPicNum,
+            'token': token,
+        }).encode(encoding="utf-8")
+
+        r = self.s.post(url, headers=headers, data=data)
+
+        ret = json.loads(r.text)
+
+        return ret
