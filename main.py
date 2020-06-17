@@ -107,7 +107,7 @@ if __name__ == "__main__":
             # 遍历任务点; 判断是否完成
             for item2 in task:
                 # 判断是否达到100%的进度
-                if item2['stuCellPercent'] == 100:
+                if item2['stuCellPercent'] == 100 and not item2['categoryName'] == "子节点":
                     continue
                 # 获取数据
                 cellId = item2['Id']
@@ -119,7 +119,8 @@ if __name__ == "__main__":
                 # 判断多开
                 if info['code'] == -100:
                     print("\n⚠️ 因服务器限制，您只可以同时学习一门课程！")
-                    action = input("❓ 是否继续学习？(yes/no): ")
+                    print("❓ 是否继续学习？(yes/no): ")
+                    action = "yes"
                     if action != "yes":
                         exit(0)
                     
@@ -193,7 +194,7 @@ if __name__ == "__main__":
                             res = obj.updateLog(courseOpenId, openClassId, moduleId, cellId, cellLogId, 0, "%.6f" % temp, 0, Token)
 
                             # 判断是否出现异常 或者 是否完成
-                            if not res or temp == audioVideoLong: 
+                            if not res or temp == audioVideoLong:
                                 break
  
                     # 判断是否完成, 从循环出来只有可能是出现异常和正常
@@ -230,7 +231,118 @@ if __name__ == "__main__":
 
                 elif task_type == '链接':
                     print("🔗 链接 《%s》 已完成!" % item2['cellName'])
+
                 elif task_type == '图片':
                     print("🖼 图片 《%s》 已完成!" % item2['cellName'])
+
+                elif task_type == "文档":
+                    token = info['guIdToken']
+                    pageCount = info['pageCount']
+                    print("📁pdf文档《%s》" % info['cellName'])
+                    print("文档长度：%s 页" % info['pageCount'])
+                    print('⏳正在自动完成……')
+                    obj.updatePdf(courseOpenId, openClassId, moduleId, cellId, picNum=pageCount, studyNewlyPicNum=pageCount, token=token)
+                    print("文档已完成")
+
+                elif task_type == "子节点":
+                    for item3 in item2['childNodeList']:
+                        if item3['stuCellFourPercent'] >= 95:
+                            continue
+                        if item3['categoryName'] == "文档" or item3['categoryName'] == "图片" or item3['categoryName'] == "图文":
+                            cellId = item3['Id']
+                            token = info['guIdToken']
+                            pageCount = info['pageCount']
+                            print("目前任务《%s》" % item3['cellName'])
+                            print('⏳正在自动完成……')
+                            obj.updatePic(courseOpenId, openClassId, moduleId, cellId, picNum=pageCount, studyNewlyPicNum=pageCount, token=token)
+                            print("《%s》任务已完成" % item3['cellName'])
+                        elif item3['categoryName'] == "视频":
+                            cellId = item3['Id']
+                            info = obj.getTaskInfo(courseOpenId, openClassId, cellId, moduleId)
+                            token = info['guIdToken']
+                            audioVideoLong = info['audioVideoLong']
+
+                            print("📺 视频 《%s》 " % item2['cellName'])
+                            print("⏰ 视频时长: %.2f 分钟" % (audioVideoLong / 60))
+                            print("⏳ 正在自动完成……")
+
+                            # 开始进行模拟上报数据
+                            # 观看进度变量
+                            index = 0
+                            # 获取已观看的时间
+                            times = info['stuStudyNewlyTime']  # 20.2
+                            # 进度条
+                            with alive_bar(int(audioVideoLong) + 1) as bar:
+                                while True:
+                                    # 如果是视频长度大于 10 秒
+                                    # 我们就分步走
+                                    # 首先先判断，我们之前是否有看过
+                                    if times > 0:
+                                        # 如果有看过, 就把原进度赋值过来
+                                        index = times
+                                        # 然后再将进度变化反馈给用户
+                                        for ited in range(int(index)):
+                                            bar()
+                                        # 再把进度记录给置为 0
+                                        # 以免之后的循环出现问题
+                                        times = 0
+
+                                    # 首先判断视频长度的是否 小于 10 秒, 或者 剩余的播放时间是否够 10 秒
+                                    if audioVideoLong > 10 and audioVideoLong - index > 10:
+                                        # 到这就说明视频长度既大于10秒，并且剩余的播放时间也大于10秒
+                                        # 然后就开始延时
+                                        for ited in range(10):
+                                            bar()
+                                            time.sleep(1)
+                                        # 延时后级对 index 进行递增 10
+                                        index = index + 10
+                                        # 然后设置一个用于告诉服务器播放进度对值
+                                        temp = index + random.random()
+                                    else:
+                                        # 不足1秒的按照1秒算
+                                        itemed = range(int(audioVideoLong - index) + 1)
+                                        for ited in itemed:
+                                            bar()
+                                            time.sleep(1)
+                                        # 然后直接赋值
+                                        temp = audioVideoLong
+                                    # 上报数据
+                                    res = obj.updateLog(courseOpenId, openClassId, moduleId, cellId, cellLogId, 0, "%.6f" % temp, 0, token)
+
+                                    # 判断是否出现异常 或者 是否完成
+                                    if not res or temp == audioVideoLong:
+                                        break
+
+                            # 判断是否完成, 从循环出来只有可能是出现异常和正常
+                            if not res:
+                                print("🚫 该视频任务因数据上报异常而终止!")
+                            else:
+                                if config['videoComment']:
+                                    # 获取这个视频的评论列表
+                                    comment = obj.getComment(courseOpenId, openClassId, moduleId, cellId)
+
+                                    exit = False
+
+                                    # 判断视频是否评论
+                                    for item4 in comment:
+                                        if item4['userId'] == userId:
+                                            exit = True
+                                            break
+
+                                    # 判断是否评论
+                                    if not exit:
+                                        size = len(config['commentList'])
+
+                                        rand = random.randint(0, size - 1)
+
+                                        content = config['commentList'][rand]
+
+                                        star = config['videoStar']
+
+                                        # 执行评论
+                                        obj.commentVideo(courseOpenId, openClassId, cellId, moduleId, content, star)
+
+                                print("🎉 视频 《%s》 已完成!" % item2['cellName'])
+
 
     print("\n🎉 你已完成了本课的所有课程！")
